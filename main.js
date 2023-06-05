@@ -3,21 +3,21 @@ var CryptoJS = require("crypto-js");
 var express = require("express");
 var bodyParser = require('body-parser');
 var WebSocket = require("ws");
-
 var http_port = process.env.HTTP_PORT || 3001;
 var p2p_port = process.env.P2P_PORT || 6001;
 var initialPeers = process.env.PEERS ? process.env.PEERS.split(',') : [];
 var difficulty = 4;
 
+
 class Block {
     constructor(index, previousHash, timestamp, data, hash, difficulty, nonce) {
-        this.index = index;
-        this.previousHash = previousHash.toString();
-        this.timestamp = timestamp;
-        this.data = data;
-        this.hash = hash.toString();
-        this.difficulty = difficulty;
-        this.nonce = nonce;
+    this.index = index;
+    this.previousHash = previousHash.toString();
+    this.timestamp = timestamp;
+    this.data = data;
+    this.hash = hash.toString();
+    this.difficulty = difficulty;
+    this.nonce = nonce; 
     }
 }
 
@@ -29,7 +29,8 @@ var MessageType = {
 };
 
 var getGenesisBlock = () => {
-        return new Block(0, "0", 1682839690, "RUT-MIIT first block", "8d9d5a7ff4a78042ea6737bf59c772f8ed27ef3c9b576eac1976c91aaf48d2de", 0, 0);
+    return new Block(0, "0", 1682839690, "RUT-MIIT first block",
+    "8d9d5a7ff4a78042ea6737bf59c772f8ed27ef3c9b576eac1976c91aaf48d2de", 0, 0);
     };
         
 var blockchain = [getGenesisBlock()];
@@ -39,23 +40,22 @@ var initHttpServer = () => {
     app.use(bodyParser.json());
     app.get('/blocks', (req, res) => res.send(JSON.stringify(blockchain)));
     app.post('/mineBlock', (req, res) => {
-        console.log("\n" + req.body.data + "\n");
-        var newBlock = mineBlock(req.body.data); 
+        var newBlock = mineBlock(req.body.data);
         addBlock(newBlock);
         broadcast(responseLatestMsg());
         console.log('block added: ' + JSON.stringify(newBlock));
         res.send();
     });
-
     app.get('/peers', (req, res) => {
-        res.send(sockets.map(s => s._socket.remoteAddress + ':' + s._socket.remotePort));
+        res.send(sockets.map(s => s._socket.remoteAddress + ':' +
+        s._socket.remotePort));
     });
-    
     app.post('/addPeer', (req, res) => {
         connectToPeers([req.body.peer]);
         res.send();
     });
-    app.listen(http_port, () => console.log('Listening http on port: ' + http_port));
+    app.listen(http_port, () => console.log('Listening http on port: ' +
+    http_port));
 };
     
 var initP2PServer = () => {
@@ -73,18 +73,18 @@ var initConnection = (ws) => {
     
 var initMessageHandler = (ws) => {
     ws.on('message', (data) => {
-    var message = JSON.parse(data);
-    console.log('Received message' + JSON.stringify(message));
-    switch (message.type) {
-        case MessageType.QUERY_LATEST:
-            write(ws, responseLatestMsg());
-            break;
-        case MessageType.QUERY_ALL:
-            write(ws, responseChainMsg());
-            break;
-        case MessageType.RESPONSE_BLOCKCHAIN:
-            handleBlockchainResponse(message);
-            break;
+        var message = JSON.parse(data);
+        console.log('Received message' + JSON.stringify(message));
+        switch (message.type) {
+            case MessageType.QUERY_LATEST:
+                write(ws, responseLatestMsg());
+                break;
+            case MessageType.QUERY_ALL:
+                write(ws, responseChainMsg());
+                break;
+            case MessageType.RESPONSE_BLOCKCHAIN:
+                handleBlockchainResponse(message);
+                break;
         }
     });
 };
@@ -103,16 +103,17 @@ var connectToPeers = (newPeers) => {
         var ws = new WebSocket(peer);
         ws.on('open', () => initConnection(ws));
         ws.on('error', () => {
-        console.log('connection failed')
+            console.log('connection failed')
         });
     });
 };
 
 var handleBlockchainResponse = (message) => {
-    var receivedBlocks = JSON.parse(message.data).sort((b1, b2) => (b1.index - b2.index));
+    var receivedBlocks = JSON.parse(message.data).sort((b1, b2) => (b1.index -
+    b2.index));
     var latestBlockReceived = receivedBlocks[receivedBlocks.length - 1];
     var latestBlockHeld = getLatestBlock();
-    if (latestBlockReceived.index > latestBlockHeld.index) {    
+    if (latestBlockReceived.index > latestBlockHeld.index) {
         console.log('blockchain possibly behind. We got: ' +
         latestBlockHeld.index + ' Peer got: ' + latestBlockReceived.index);
         if (latestBlockHeld.hash === latestBlockReceived.previousHash) {
@@ -135,23 +136,24 @@ var generateNextBlock = (blockData) => {
     var previousBlock = getLatestBlock();
     var nextIndex = previousBlock.index + 1;
     var nextTimestamp = new Date().getTime() / 1000;
-    var nextHash = calculateHash(nextIndex, previousBlock.hash, nextTimestamp, blockData);
-    return new Block(nextIndex, previousBlock.hash, nextTimestamp, blockData, nextHash);
+    var nextHash = calculateHash(nextIndex, previousBlock.hash, nextTimestamp,
+        blockData);
+    return new Block(nextIndex, previousBlock.hash, nextTimestamp, blockData,
+        nextHash);
 };
 
 var calculateHashForBlock = (block) => {
-    console.log("Салам алейкум братьям с Армении!")
-    return calculateHash(block.index, block.previousHash, block.timestamp, block.data, block.nonce);
+    return calculateHash(block.index, block.previousHash, block.timestamp,
+        block.data, block.nonce);
 };
 
 var calculateHash = (index, previousHash, timestamp, data, nonce) => {
-    console.log("Салам алейкум братьям с Дагестана!")
     return CryptoJS.SHA256(index + previousHash + timestamp + data + nonce).toString();
 };
 
 var addBlock = (newBlock) => {
     if (isValidNewBlock(newBlock, getLatestBlock())) {
-    blockchain.push(newBlock);
+        blockchain.push(newBlock);
     }
 };
 
@@ -184,7 +186,7 @@ var replaceChain = (newBlocks) => {
 
 var isValidChain = (blockchainToValidate) => {
     if (JSON.stringify(blockchainToValidate[0]) !==
-        JSON.stringify(getGenesisBlock())) {
+    JSON.stringify(getGenesisBlock())) {
         return false;
     }
     var tempBlocks = [blockchainToValidate[0]];
@@ -192,7 +194,7 @@ var isValidChain = (blockchainToValidate) => {
         if (isValidNewBlock(blockchainToValidate[i], tempBlocks[i - 1])) {
             tempBlocks.push(blockchainToValidate[i]);
         } else {
-            return false;
+        return false;
         }
     }
     return true;
@@ -202,7 +204,8 @@ var getLatestBlock = () => blockchain[blockchain.length - 1];
 var queryChainLengthMsg = () => ({'type': MessageType.QUERY_LATEST});
 var queryAllMsg = () => ({'type': MessageType.QUERY_ALL});
 var responseChainMsg = () =>({
-    'type': MessageType.RESPONSE_BLOCKCHAIN, 'data': JSON.stringify(blockchain)});
+    'type': MessageType.RESPONSE_BLOCKCHAIN, 'data': JSON.stringify(blockchain)
+});
 var responseLatestMsg = () => ({
     'type': MessageType.RESPONSE_BLOCKCHAIN,
     'data': JSON.stringify([getLatestBlock()])
@@ -213,39 +216,26 @@ connectToPeers(initialPeers);
 initHttpServer();
 initP2PServer();
 
-
 var mineBlock = (blockData) => {
     var previousBlock = getLatestBlock();
     var nextIndex = previousBlock.index + 1;
     var nonce = 0;
     var nextTimestamp = new Date().getTime() / 1000;
-    var nextHash = calculateHash(nextIndex, previousBlock.hash, 
-        nextTimestamp, blockData, nonce);
+    var nextHash = calculateHash(nextIndex, previousBlock.hash, nextTimestamp,
+    blockData, nonce);
     while (nextHash.substring(0, difficulty) !== Array(difficulty +
-            1).join("0")){
+    1).join("0")){
         nonce++;
         nextTimestamp = new Date().getTime() / 1000;
         nextHash = calculateHash(nextIndex, previousBlock.hash,
         nextTimestamp, blockData, nonce)
-
         console.log("\"index\":" + nextIndex +
         ",\"previousHash\":"+previousBlock.hash+
-        "\"timestamp\":"+nextTimestamp +",\"data\":"+ blockData +
+        "\"timestamp\":"+nextTimestamp+",\"data\":"+blockData+
         ",\x1b[33mhash: " + nextHash + " \x1b[0m," +
         "\"difficulty\":"+difficulty+
         " \x1b[33mnonce: " + nonce + " \x1b[0m ");
     }
-    return new Block(nextIndex, previousBlock.hash, nextTimestamp, 
-        blockData, nextHash, difficulty, nonce);
-}
-
-let n = 100000;
-nextPrime:
-for (let i = 2; i <= n; i++) { // Для всех i
-
-  for (let j = 2; j < i; j++) { // проверка делится ли число..
-    if (i % j == 0) continue nextPrime; // не подходит - берём следующее
-  }
-
-  alert( i ); // простое число ddasdasd
-}
+    return new Block(nextIndex, previousBlock.hash, nextTimestamp, blockData,
+        nextHash, difficulty, nonce);
+}      
